@@ -16,6 +16,10 @@ interface UpsertAttachment {
   (blob: Blob, id: string): void;
 }
 
+interface RemoveAttachment {
+  (id: string): void;
+}
+
 interface UpsertData {
   (pathStr: string, data: any): void;
 }
@@ -31,7 +35,11 @@ export const StoreContext = React.createContext({
   metadata: {} as any,
   upsertAttachment: ((blob: Blob, id: any) => {}) as UpsertAttachment,
   upsertData: ((pathStr: string, data: any) => {}) as UpsertData,
+<<<<<<< HEAD
+  removeAttachment: ((id: string) => {}) as RemoveAttachment,
+=======
   upsertDoc: ((pathStr: string, data: any) => {}) as UpsertDoc,
+>>>>>>> origin
 });
 
 
@@ -307,8 +315,43 @@ export const StoreProvider: FC<StoreProviderProps> = ({ children, dbName, docId 
     }
   };
 
+  const removeAttachment: RemoveAttachment = async (id: string) => {
+    // Remove the attachment from memory
+    const newAttachments = { ...attachments }
+    delete newAttachments[id]
+    setAttachments(newAttachments)
+  
+    // Remove the attachment from the database
+    const removeBlobDB = async (rev: string): Promise<PouchDB.Core.Response | null> => {
+      let result = null
+      if (db) {
+        try {
+          result = await db.removeAttachment(docId, id, rev)
+        } catch (err) {
+          // Try again with the latest rev value
+          const doc = await db.get(docId)
+          result = await removeBlobDB(doc._rev)
+        } finally {
+          if (result) {
+            revisionRef.current = result.rev
+          }
+        }
+      }
+      return result
+    }
+  
+    if (revisionRef.current) {
+      await removeBlobDB(revisionRef.current)
+    }
+  };
+  
+
   return (
+<<<<<<< HEAD
+    <StoreContext.Provider value={{attachments, doc, upsertAttachment, upsertData, removeAttachment }}>
+=======
     <StoreContext.Provider value={{attachments,  data, metadata, upsertAttachment, upsertData}}>
+>>>>>>> origin
       {children}
     </StoreContext.Provider>
   );
